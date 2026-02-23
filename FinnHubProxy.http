@@ -1,0 +1,6 @@
+@FinnHubProxy_HostAddress = http://localhost:5180
+
+GET {{FinnHubProxy_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
