@@ -18,15 +18,16 @@ namespace FinnHubProxy.Controllers
     public class WatchListController : ControllerBase
     {
         [HttpPost]
-        public async Task<IActionResult> CreateWatchList([FromBody] WatchListRequest request)
+        public IActionResult CreateWatchList([FromBody] WatchListRequest request)
         {
             if (string.IsNullOrWhiteSpace(request.WatchlistName))
                 return BadRequest("Name is required.");
 
-            return Ok(new {
+            return Ok(new
+            {
                 Id = 20,
                 Message = $"Watchlist '{request.WatchlistName}' created."
-            }); 
+            });
         }
 
         /// <summary>

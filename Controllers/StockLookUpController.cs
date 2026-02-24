@@ -6,7 +6,7 @@ using System.Diagnostics;
 namespace FinnHubProxy.Controllers
 {
     [ApiController]
-    [Route("[controller]")]
+    [Route("api/[controller]")]
     public class StockLookUpController : ControllerBase
     {
         private readonly ILogger<StockLookUpController> _logger;
