@@ -2,22 +2,28 @@ using Microsoft.AspNetCore.Mvc;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Diagnostics;
+using FinnHubProxy.Services;
 
 namespace FinnHubProxy.Controllers
 {
     [ApiController]
-    [Route("[controller]")]
+    [Route("api/stocklookup")]
     public class StockLookUpController : ControllerBase
     {
+        private readonly WatchListStore currentStore;
         private readonly ILogger<StockLookUpController> _logger;
         private readonly IConfiguration _configuration;
-        private const string FINN_API = "";
 
-        public StockLookUpController(ILogger<StockLookUpController> logger, IConfiguration configuration)
+        // FIX: Combine all parameters into this single constructor
+        public StockLookUpController(
+            ILogger<StockLookUpController> logger,
+            IConfiguration configuration,
+            WatchListStore store)
         {
             _logger = logger;
             _configuration = configuration;
-        }
+            currentStore = store;
+        } 
 
         [HttpGet]
         public async Task<IActionResult> GetAsync(string symbol)
@@ -25,7 +31,7 @@ namespace FinnHubProxy.Controllers
             var finnApi = _configuration["FINN_API"];
             var apiKey = _configuration["FINN_API_KEY"];
             using var httpClient = new HttpClient();
-                    
+
             var response = await httpClient.GetAsync(finnApi + "/api/v1/search?q=" + symbol + "&exchange=US&token=" + apiKey);
 
             if (response.IsSuccessStatusCode)
@@ -34,11 +40,13 @@ namespace FinnHubProxy.Controllers
 
                 return Ok(content);
 
-            } else {
+            }
+            else
+            {
 
                 return StatusCode((int)response.StatusCode, "Error fetching stock data: " + response.ReasonPhrase);
             }
-            
+
         }
 
         [HttpGet("price")]
@@ -58,64 +66,49 @@ namespace FinnHubProxy.Controllers
 
                 return Ok(content);
 
-            } else {
+            }
+            else
+            {
                 return StatusCode((int)response.StatusCode, "Error fetching stock data: " + response.ReasonPhrase);
             }
         }
-    }
-}
 
-/*
-{
-  "profiles": {
-    "http": {
-      "commandName": "Project",
-      "launchBrowser": true,
-      "launchUrl": "swagger",
-      "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
-      },
-      "dotnetRunMessages": true,
-      "applicationUrl": "http://localhost:5180"
-    },
-    "https": {
-      "commandName": "Project",
-      "launchBrowser": true,
-      "launchUrl": "swagger",
-      "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
-      },
-      "dotnetRunMessages": true,
-      "applicationUrl": "https://localhost:7060;http://localhost:5180"
-    },
-    "IIS Express": {
-      "commandName": "IISExpress",
-      "launchBrowser": true,
-      "launchUrl": "swagger",
-      "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
-      }
-    },
-    "Container (Dockerfile)": {
-      "commandName": "Docker",
-      "launchBrowser": true,
-      "launchUrl": "{Scheme}://{ServiceHost}:{ServicePort}/swagger",
-      "environmentVariables": {
-        "ASPNETCORE_HTTPS_PORTS": "8081",
-        "ASPNETCORE_HTTP_PORTS": "8080"
-      },
-      "publishAllPorts": true,
-      "useSSL": true
+        [HttpGet("totalsummary")]
+        public async Task<IActionResult> GetPortfolioTotalSummary(string watchlistId)
+        {
+         
+            var finnApi = _configuration["FINN_API"];
+            var apiKey = _configuration["FINN_API_KEY"];
+            using var httpClient = new HttpClient();
+
+            // var symbols = new[] { "AAPL", "MSFT", "GOOGL", "AMZN" };
+            var result = currentStore.GetWatchlistPortfolio(watchlistId);
+            string[] symbols = result?.ToArray() ?? Array.Empty<string>();
+
+            // Option B: Traditional if-check
+            if (result == null)
+            {
+                return BadRequest("Portfolio not found.");
+            }            
+
+            // 1. Create a collection of tasks (requests start immediately)
+            var tasks = symbols.Select(symbol =>
+                httpClient.GetAsync($"{finnApi}/api/v1/quote?symbol={symbol}&token={apiKey}")
+            );
+
+            // 2. Await all tasks to finish
+            var responses = await Task.WhenAll(tasks);
+            List<Object> objx = new List<Object>();
+
+            // 3. Process results
+            // need to make it friendlier
+            foreach (var response in responses)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                objx.Add(content);
+            }
+
+            return Ok(objx);
+        }
     }
-  },
-  "$schema": "http://json.schemastore.org/launchsettings.json",
-  "iisSettings": {
-    "windowsAuthentication": false,
-    "anonymousAuthentication": true,
-    "iisExpress": {
-      "applicationUrl": "http://localhost:64953",
-      "sslPort": 44338
-    }
-  }
 }
-*/

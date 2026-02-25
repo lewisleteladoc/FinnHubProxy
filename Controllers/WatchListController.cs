@@ -1,8 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
+using System.Collections.Generic;
+using FinnHubProxy.Services;
+using Microsoft.VisualBasic;
+using System.Data;
 
 namespace FinnHubProxy.Controllers
-{
+{    
     public class WatchListRequest
     {
         public string WatchlistName { get; set; }
@@ -14,19 +18,40 @@ namespace FinnHubProxy.Controllers
     );
 
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/watchlist")]
     public class WatchListController : ControllerBase
     {
+        private readonly WatchListStore currentStore;
+
+        // The framework injects the singleton here
+        public WatchListController(WatchListStore store)
+        {
+            currentStore = store;
+        }
+
         [HttpPost]
-        public async Task<IActionResult> CreateWatchList([FromBody] WatchListRequest request)
+        public IActionResult CreateWatchList([FromBody] WatchListRequest request)
         {
             if (string.IsNullOrWhiteSpace(request.WatchlistName))
                 return BadRequest("Name is required.");
 
-            return Ok(new {
-                Id = 20,
-                Message = $"Watchlist '{request.WatchlistName}' created."
-            }); 
+            // Access the singleton via currentStore
+            var newId = currentStore.CreateWatchlist(request.WatchlistName);
+
+            if (newId != "" && newId != null) {
+                return Ok(new
+                {
+                    Id = newId,
+                    Message = $"Watchlist '{request.WatchlistName}' created."
+                });
+            }
+
+            // Return a 409 Conflict if the resource already exists
+            return Conflict(new
+            {
+                message = $"A watchlist with the name '{request.WatchlistName}' already exists."
+            });
+
         }
 
         /// <summary>
@@ -35,18 +60,38 @@ namespace FinnHubProxy.Controllers
         /// <param name="watchlistId">The unique ID of the watchlist.</param>
         /// <param name="request">The symbol to add.</param>
         [HttpPut("{watchlistId}")]
-        public async Task<IActionResult> UpdateWatchList(int watchlistId, [FromBody] AddSymbolRequest request)
+        public async Task<IActionResult> AddToWatchlist(string watchlistId, [FromBody] AddSymbolRequest request)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
             // Logic to update the watchlist with the new symbol goes here
             // Example: await _context.WatchLists.UpdateSymbolAsync(watchlistId, request.Symbol);
+            currentStore.AddToWatchlist(watchlistId, request.Symbol);
 
             return Ok(new
             {
                 Message = $"Symbol '{request.Symbol}' added to Watchlist {watchlistId}.",
                 WatchlistId = watchlistId,
                 UpdatedAt = DateTime.UtcNow
+            });
+        }       
+
+        [HttpGet("{watchlistId}")]
+        public IActionResult GetWatchList(string watchlistId) // Changed from Task<IActionResult>
+        {
+            var result = currentStore.GetWatchlistPortfolio(watchlistId);
+
+            // Check if the resource exists
+            if (result == null)
+            {
+                return NotFound(new { Message = $"Watchlist with ID '{watchlistId}' not found." });
+            }
+
+            return Ok(new
+            {
+                WatchlistId = watchlistId,
+                Symbols = result ?? new List<string>(),
+                RetrievedAt = DateTime.UtcNow
             });
         }
     }
