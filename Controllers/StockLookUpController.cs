@@ -102,6 +102,7 @@ namespace FinnHubProxy.Controllers
 
             // 3. Process results
             // need to make it friendlier
+            // need to sum the total AUM and return that as well
             foreach (var response in responses)
             {
                 var content = await response.Content.ReadAsStringAsync();
