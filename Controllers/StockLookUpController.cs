@@ -28,8 +28,8 @@ namespace FinnHubProxy.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAsync(string symbol)
         {
-            var finnApi = _configuration["FINN_API"];
-            var apiKey = _configuration["FINN_API_KEY"];
+            var finnApi = _configuration["FinnApi:BaseUrl"];
+            var apiKey = _configuration["FinnApi:ApiKey"];
             using var httpClient = new HttpClient();
 
             var response = await httpClient.GetAsync(finnApi + "/api/v1/search?q=" + symbol + "&exchange=US&token=" + apiKey);
@@ -52,8 +52,8 @@ namespace FinnHubProxy.Controllers
         [HttpGet("price")]
         public async Task<IActionResult> GetStockPrice(string symbol)
         {
-            var finnApi = _configuration["FINN_API"];
-            var apiKey = _configuration["FINN_API_KEY"];
+            var finnApi = _configuration["FinnApi:BaseUrl"];
+            var apiKey = _configuration["FinnApi:ApiKey"];
             var url = $"{finnApi}/api/v1/quote?symbol={symbol}&token={apiKey}";
 
             using var httpClient = new HttpClient();
@@ -76,9 +76,9 @@ namespace FinnHubProxy.Controllers
         [HttpGet("totalsummary")]
         public async Task<IActionResult> GetPortfolioTotalSummary(string watchlistId)
         {
-         
-            var finnApi = _configuration["FINN_API"];
-            var apiKey = _configuration["FINN_API_KEY"];
+
+            var finnApi = _configuration["FinnApi:BaseUrl"];
+            var apiKey = _configuration["FinnApi:ApiKey"];
             using var httpClient = new HttpClient();
 
             // var symbols = new[] { "AAPL", "MSFT", "GOOGL", "AMZN" };
