@@ -39,6 +39,11 @@ builder.Services.AddCors(options =>
     });
 });
 builder.Services.AddSingleton<WatchListStore>();
+builder.Services.AddSingleton<UserStore>();
+builder.Services.AddSingleton<UserWatchlistStore>();
+builder.Services.AddSingleton<SecuritiesStoriesStore>();
+builder.Services.AddHostedService<StartupFileLoaderService>();
+builder.Services.AddHostedService<SecuritiesStoriesLoaderBackgroundService>();
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();

@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Linq;
 
 namespace FinnHubProxy.Services;
 
@@ -11,13 +12,13 @@ public class WatchListStore
         public string PortfolioId { get; set; } = string.Empty;   
     }
     // Changed to PascalCase per C# standards
-    public ConcurrentDictionary<string, List<string>> WatchlistsStore { get; } = new();
-    public ConcurrentDictionary<string, string> Watchlists { get; } = new();
+    private ConcurrentDictionary<string, List<string>> WatchlistSecuritiesStore { get; } = new();
+    private ConcurrentDictionary<string, string> Watchlists { get; } = new();
 
     public void AddToWatchlist(string watchlistId, string symbol)
     {
         // Get existing list or create a new one atomicaly
-        var list = WatchlistsStore.GetOrAdd(watchlistId, _ => new List<string>());
+        var list = WatchlistSecuritiesStore.GetOrAdd(watchlistId, _ => new List<string>());
 
         // Lock to ensure thread-safety for the List<T> itself
         lock (list)
@@ -28,16 +29,27 @@ public class WatchListStore
             }
         }
     }
+    public void AddToWatchlist(string watchlistId, string[] symbols)
+    {
+        // Get existing list or create a new one atomicaly
+        var list = WatchlistSecuritiesStore.GetOrAdd(watchlistId, _ => new List<string>());
+
+        // Lock to ensure thread-safety for the List<T> itself
+        lock (list)
+        {
+            list.AddRange(symbols.Except(list, StringComparer.OrdinalIgnoreCase));
+        }
+    }
     public string CreateWatchlist(string watchListName)
     {
         // TryAdd returns true if the key was added, 
         // or false if the userId already exists.
-        string guidString = Guid.NewGuid().ToString();
-        if (Watchlists.TryAdd(watchListName, guidString))
+        string watchlistId = Guid.NewGuid().ToString();
+        if (Watchlists.TryAdd(watchlistId, watchListName))
         {
-            if(WatchlistsStore.TryAdd(guidString, new List<string>()))
+            if(WatchlistSecuritiesStore.TryAdd(watchlistId, new List<string>()))
             {
-                return guidString;
+                return watchlistId;
             }
             
         }
@@ -49,11 +61,24 @@ public class WatchListStore
     public List<string>? GetWatchlistPortfolio(string watchlistId)
     {
         // TryGetValue returns true if the key is found, and assigns the result to 'list'
-        if (WatchlistsStore.TryGetValue(watchlistId, out var list))
+        if (WatchlistSecuritiesStore.TryGetValue(watchlistId, out var list))
         {
-            return list;
+            // Sort and return a NEW list to keep the store's original order intact
+            return list.OrderBy(x => x).ToList();
         }
 
         return null; // Or return new List<string>() depending on your preference
+    }
+
+    public dynamic GetWatchlistFullName(List<string> watchlistIds)
+    {
+        return watchlistIds
+        .Where(id => Watchlists.ContainsKey(id))
+        .Select(id => new
+        {
+            id = id,
+            name = Watchlists[id]
+        })
+        .ToList();
     }
 }

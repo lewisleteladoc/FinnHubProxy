@@ -32,7 +32,7 @@ namespace FinnHubProxy.Controllers
             var apiKey = _configuration["FinnApi:ApiKey"];
             using var httpClient = new HttpClient();
 
-            var response = await httpClient.GetAsync(finnApi + "/api/v1/search?q=" + symbol + "&exchange=US&token=" + apiKey);
+            var response = await httpClient.GetAsync(finnApi + "/api/v1/search?q=" + symbol.ToUpper() + "&exchange=US&token=" + apiKey);
 
             if (response.IsSuccessStatusCode)
             {
@@ -54,7 +54,7 @@ namespace FinnHubProxy.Controllers
         {
             var finnApi = _configuration["FinnApi:BaseUrl"];
             var apiKey = _configuration["FinnApi:ApiKey"];
-            var url = $"{finnApi}/api/v1/quote?symbol={symbol}&token={apiKey}";
+            var url = $"{finnApi}/api/v1/quote?symbol={symbol.ToUpper()}&token={apiKey}";
 
             using var httpClient = new HttpClient();
 
@@ -93,7 +93,7 @@ namespace FinnHubProxy.Controllers
 
             // 1. Create a collection of tasks (requests start immediately)
             var tasks = symbols.Select(symbol =>
-                httpClient.GetAsync($"{finnApi}/api/v1/quote?symbol={symbol}&token={apiKey}")
+                httpClient.GetAsync($"{finnApi}/api/v1/quote?symbol={symbol.ToUpper()}&token={apiKey}")
             );
 
             // 2. Await all tasks to finish
