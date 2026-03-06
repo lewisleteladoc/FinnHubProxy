@@ -73,6 +73,6 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-app.MapGet("/", () => Results.Ok("FinnHubProxy is running"));
+app.MapGet("/", () => Results.Ok("FinnHubProxy is running: " + DateTime.Now));
 
 app.Run();
