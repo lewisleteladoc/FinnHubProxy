@@ -23,11 +23,14 @@ namespace FinnHubProxy.Controllers
     {
         private readonly WatchListStore watchlistStore;
         private readonly UserWatchlistStore userWatchlistStore;
+        private readonly ILogger<WatchListController> logger;
 
         // The framework injects the singleton here
         public WatchListController(WatchListStore store,
-            UserWatchlistStore userWatchlistStore)
+            UserWatchlistStore userWatchlistStore,
+            ILogger<WatchListController> logger)
         {
+            this.logger = logger;
             watchlistStore = store;
             this.userWatchlistStore = userWatchlistStore;
         }
@@ -70,6 +73,7 @@ namespace FinnHubProxy.Controllers
             // Logic to update the watchlist with the new symbol goes here
             // Example: await _context.WatchLists.UpdateSymbolAsync(watchlistId, request.Symbol);
             watchlistStore.AddToWatchlist(watchlistId, request.Symbol);
+            logger.LogInformation($"AddToWatchlist {watchlistId} - {request.Symbol}.");
 
             return Ok(new
             {
@@ -107,12 +111,20 @@ namespace FinnHubProxy.Controllers
             {
                 return NotFound(new { Message = $"Watchlist with ID '{watchlistId}' not found." });
             }
-
+           
             var result = watchlistStore.GetWatchlistPortfolio(watchlistId);
+            var watchlist = watchlistStore.GetWatchlistFullName(new List<string> { watchlistId });
+            string name = "";
+
+            if (watchlist != null)
+            {
+                name = watchlist[0].name;
+            }
 
             return Ok(new
             {
                 WatchlistId = watchlistId,
+                Name = name,
                 Symbols = result ?? new List<string>(),
                 RetrievedAt = DateTime.UtcNow
             });

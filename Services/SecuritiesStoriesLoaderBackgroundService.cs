@@ -1,8 +1,5 @@
-﻿using System.Security.AccessControl;
-using System.Text.Json;
-using Microsoft.AspNetCore.Identity;
+﻿using System.Text.Json;
 using Microsoft.AspNetCore.WebUtilities;
-using System.Text.Json;
 
 namespace FinnHubProxy.Services
 {
@@ -55,7 +52,8 @@ namespace FinnHubProxy.Services
                     decimal currentPrice = price.GetDecimal();
                     batchTotalAum += currentPrice; // Summing "AUM" (Price) as requested
 
-                    securityStore.AddStoryToSecurity(symbol, $"Current price of: {currentPrice}");
+                    securityStore.AddStoryToSecurity(symbol, $"Current price of: {currentPrice}");                    
+
                 }
             }
 
@@ -64,44 +62,43 @@ namespace FinnHubProxy.Services
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _logger.LogInformation("StartupFileLoaderService started.");            
+            _logger.LogInformation("SecuritiesStoriesLoaderBackgroundService started.");            
             int BATCH_SIZE = 30;
             decimal totalAum = 0;
 
             try
-            {
-                // Example: read files from MockData folder
-                var basePath = Path.Combine(env.ContentRootPath, "MockData");
-                var symbolsPath = Path.Combine(basePath, "symbols.txt");                
+            {               
+                var basePath = AppContext.BaseDirectory;
+                var symbolsPath = Path.Combine(basePath, "MockData", "symbols.txt");
+                _logger.LogInformation($"BaseDirectory: {AppContext.BaseDirectory}");
 
                 if (File.Exists(symbolsPath))
                 {
                     var allSymbols = await File.ReadAllLinesAsync(symbolsPath, stoppingToken);                    
 
                     // Logic to get 30 elements at a time
+                    // Reason is that finnhub has a limit
                     foreach (var batch in allSymbols.Chunk(BATCH_SIZE))
                     {
                         totalAum += await ProcessSymbolsBatchAsync(batch);
 
                         await Task.Delay(1000, stoppingToken);
-                    }                    
-                }                
+                    }
+                    _logger.LogInformation("SecuritiesStoriesLoaderBackgroundService found symbolsPath. " + symbolsPath);
+                } else
+                {
+                    _logger.LogInformation("SecuritiesStoriesLoaderBackgroundService not found symbolsPath. " + symbolsPath);
+                }                       
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error loading startup files.");
             }
 
-            _logger.LogInformation("StartupFileLoaderService finished. " + totalAum);
+            _logger.LogInformation("SecuritiesStoriesLoaderBackgroundService finished. " + totalAum);
 
             // If this should run only once, stop here:
             await Task.CompletedTask;
-
-            // If you wanted a loop instead:
-            // while (!stoppingToken.IsCancellationRequested)
-            // {
-            //     await Task.Delay(10000, stoppingToken);
-            // }
         }
     }
 }

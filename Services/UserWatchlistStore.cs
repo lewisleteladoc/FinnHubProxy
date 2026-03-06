@@ -7,7 +7,12 @@ namespace FinnHubProxy.Services;
 public class UserWatchlistStore
 {
     private ConcurrentDictionary<string, List<string>> UserWatchlists { get; } = new();
+    private readonly ILogger<UserWatchlistStore> logger;
 
+    public UserWatchlistStore(ILogger<UserWatchlistStore> logger)
+    {
+        this.logger = logger;
+    }
     public void AddUserWatchlistRelationship(string username, string watchlistId)
     {
         // Returns true if the key was added, 
@@ -16,8 +21,8 @@ public class UserWatchlistStore
         {
             UserWatchlists[username] = new List<string>();
         }
-        UserWatchlists[username].Add(watchlistId);        
-
+        UserWatchlists[username].Add(watchlistId);
+        logger.LogInformation($"username {username} - watchlistId {watchlistId}");
     }
 
     public List<string>? GetUserWatchlists(string userId)

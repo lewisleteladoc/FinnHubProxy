@@ -62,22 +62,25 @@
             var userIds = new List<string>();
             var symbolsList = Array.Empty<string>();
             try
-            {
-                // Example: read files from MockData folder
-                var basePath = Path.Combine(_env.ContentRootPath, "MockData");
-
-                var usersPath = Path.Combine(basePath, "users.txt");
-                var symbolsPath = Path.Combine(basePath, "symbols.txt");
-                var watchlistNamesPath = Path.Combine(basePath, "watchlistNames.txt");
+            {                
+                var basePath = AppContext.BaseDirectory;
+                var symbolsPath = Path.Combine(basePath, "MockData", "symbols.txt");
+                var usersPath = Path.Combine(basePath, "MockData", "users.txt");
+                var watchlistNamesPath = Path.Combine(basePath, "MockData", "watchlistNames.txt");
+                _logger.LogInformation($"BaseDirectory: {AppContext.BaseDirectory}");
 
                 if (File.Exists(symbolsPath))
                 {
-                    symbolsList = await File.ReadAllLinesAsync(symbolsPath, stoppingToken);                 
+                    symbolsList = await File.ReadAllLinesAsync(symbolsPath, stoppingToken);
+                    _logger.LogInformation($"StartupFileLoaderService found symbolsPath: {symbolsPath}");
+                } else
+                {
+                    _logger.LogInformation($"StartupFileLoaderService not found symbolsPath: {symbolsPath}");
                 }
 
                 if (File.Exists(usersPath))
                 {
-                    var users = await File.ReadAllLinesAsync(usersPath, stoppingToken);                    
+                    var users = await File.ReadAllLinesAsync(usersPath, stoppingToken);
 
                     foreach (var line in users)
                     {
@@ -97,14 +100,17 @@
                         userIds.Add(username);
 
                         // Example usage:
-                        userStore.AddUser(username, guid);                        
+                        userStore.AddUser(username, guid);
                     }
 
+                } else
+                {
+                    _logger.LogInformation($"StartupFileLoaderService not found usersPath: {usersPath}");
                 }
 
                 if (File.Exists(watchlistNamesPath))
                 {
-                    var names = await File.ReadAllLinesAsync(watchlistNamesPath, stoppingToken);                    
+                    var names = await File.ReadAllLinesAsync(watchlistNamesPath, stoppingToken);
 
                     foreach (var watchlistName in names)
                     {
@@ -116,10 +122,15 @@
                         // This will create a Collection[watchlistName, watchlistId]
                         // Then it will add to WatchlistSecuritiesStore[watchlistId],List<string>]
                         string watchlistId = watchListStore.CreateWatchlist(watchlistName);
-                        userWatchlistStore.AddUserWatchlistRelationship(GetRandomValue(userIds), watchlistId);
+                        string username = GetRandomValue(userIds);
+                        userWatchlistStore.AddUserWatchlistRelationship(username, watchlistId);
+                        _logger.LogInformation($"StartupFileLoaderService:AddUserWatchlistRelationship userId {username} - watchlistId {watchlistId}.");
                         watchListStore.AddToWatchlist(watchlistId, GetUniqueRandomSubset(symbolsList));
-                    }                    
-                }                
+                    }
+                } else
+                {
+                    _logger.LogInformation($"StartupFileLoaderService not found watchlistNamesPath: {watchlistNamesPath}");
+                }
             }
             catch (Exception ex)
             {
@@ -130,12 +141,6 @@
 
             // If this should run only once, stop here:
             await Task.CompletedTask;
-
-            // If you wanted a loop instead:
-            // while (!stoppingToken.IsCancellationRequested)
-            // {
-            //     await Task.Delay(10000, stoppingToken);
-            // }
         }
     }
 }
