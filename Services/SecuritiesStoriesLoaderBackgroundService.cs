@@ -52,7 +52,7 @@ namespace FinnHubProxy.Services
                     decimal currentPrice = price.GetDecimal();
                     batchTotalAum += currentPrice; // Summing "AUM" (Price) as requested
 
-                    securityStore.AddStoryToSecurity(symbol, $"Current price of: {currentPrice}");                    
+                    securityStore.AddStoryToSecurity(symbol ?? "----", $"Current price of: {currentPrice}");                    
 
                 }
             }

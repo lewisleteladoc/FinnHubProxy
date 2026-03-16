@@ -28,6 +28,9 @@ namespace FinnHubProxy.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAsync(string symbol)
         {
+            var username = HttpContext.Items["username"]?.ToString();
+            var token = HttpContext.Items["token"]?.ToString();
+
             var finnApi = _configuration["FinnApi:BaseUrl"];
             var apiKey = _configuration["FinnApi:ApiKey"];
             using var httpClient = new HttpClient();

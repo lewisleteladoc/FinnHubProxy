@@ -2,26 +2,6 @@ Core 10
 Bellwethers
 Indices Overview
 Market Internals
-Liquid Tickers
-Blue Chips
-Mag 7
-Dow 30
-Global Markets
-Pre-Market Movers
-Gappers
-Top Gainers
-52-Week Highs
-Daily Runners
-Breakout Candidates
-Relative Strength
-Golden Cross
-Oversold Rebounds
-Volume Spikes
-Moving Average Bounce
-Semi Squad
-Tech Titans
-Financials
-EV & Green Energy
 Healthcare/Biotech
 Energy & Oil
 Consumer Staples
@@ -36,15 +16,3 @@ Penny Stocks
 IPO Watch
 Short Squeeze Candidates
 Earnings This Week
-Swing Trades
-Speculative
-Inverse ETFs
-Crypto Proxies
-Seasonal Plays
-Options Wheel
-IV High
-Beta Hedges
-Institutional Buys
-Acquisition Targets
-Turnaround Stories
-The "Wait and See"
