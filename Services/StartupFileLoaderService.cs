@@ -10,6 +10,7 @@
         private readonly WatchListStore watchListStore;
         private readonly UserWatchlistStore userWatchlistStore;
         private readonly SecuritiesStoriesStore securitiesStoriesStore;
+        private readonly AdminUserStore adminUserStore;
 
         private readonly Random _random = new Random();
 
@@ -46,14 +47,16 @@
             UserStore userStore,
             WatchListStore currentStore,
             UserWatchlistStore userWatchlistStore,
-            SecuritiesStoriesStore securitiesStoriesStore)
+            SecuritiesStoriesStore securitiesStoriesStore,
+            AdminUserStore adminUserStore)
         {
             _logger = logger;
             _env = env;
             this.userStore = userStore;
             this.watchListStore = currentStore;
             this.userWatchlistStore = userWatchlistStore;
-            this.securitiesStoriesStore = securitiesStoriesStore;   
+            this.securitiesStoriesStore = securitiesStoriesStore;
+            this.adminUserStore = adminUserStore;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -66,6 +69,7 @@
                 var basePath = AppContext.BaseDirectory;
                 var symbolsPath = Path.Combine(basePath, "MockData", "symbols.txt");
                 var usersPath = Path.Combine(basePath, "MockData", "users.txt");
+                var adminUsersPath = Path.Combine(basePath, "MockData", "adminUsers.txt");
                 var watchlistNamesPath = Path.Combine(basePath, "MockData", "watchlistNames.txt");
                 _logger.LogInformation($"BaseDirectory: {AppContext.BaseDirectory}");
 
@@ -77,6 +81,29 @@
                 {
                     _logger.LogInformation($"StartupFileLoaderService not found symbolsPath: {symbolsPath}");
                 }
+
+                if (File.Exists(adminUsersPath))
+                {
+                    var users = await File.ReadAllLinesAsync(adminUsersPath, stoppingToken);
+
+                    foreach (var user in users)
+                    {
+                        adminUserStore.AddUser(user);
+                    }
+                } else
+                {
+                    _logger.LogInformation($"StartupFileLoaderService not found adminUsersPath: {adminUsersPath}");
+                }
+
+                /* if (File.Exists(symbolsPath))
+                {
+                    symbolsList = await File.ReadAllLinesAsync(symbolsPath, stoppingToken);
+                    _logger.LogInformation($"StartupFileLoaderService found symbolsPath: {symbolsPath}");
+                }
+                else
+                {
+                    _logger.LogInformation($"StartupFileLoaderService not found symbolsPath: {symbolsPath}");
+                } */
 
                 if (File.Exists(usersPath))
                 {
@@ -103,7 +130,8 @@
                         userStore.AddUser(username, guid);
                     }
 
-                } else
+                }
+                else
                 {
                     _logger.LogInformation($"StartupFileLoaderService not found usersPath: {usersPath}");
                 }
@@ -124,8 +152,8 @@
                         string watchlistId = watchListStore.CreateWatchlist(watchlistName);
                         string username = GetRandomValue(userIds);
                         userWatchlistStore.AddUserWatchlistRelationship(username, watchlistId);
-                        _logger.LogInformation($"StartupFileLoaderService:AddUserWatchlistRelationship userId {username} - watchlistId {watchlistId}.");
-                        watchListStore.AddToWatchlist(watchlistId, GetUniqueRandomSubset(symbolsList));
+                        // _logger.LogInformation($"StartupFileLoaderService:AddUserWatchlistRelationship userId {username} - watchlistId {watchlistId}.");
+                        watchListStore.AddToWatchlistInBulk(watchlistId, GetUniqueRandomSubset(symbolsList));
                     }
                 } else
                 {

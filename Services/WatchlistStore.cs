@@ -1,5 +1,12 @@
 using System.Collections.Concurrent;
 using System.Linq;
+using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
+using System.Collections.Generic;
+using FinnHubProxy.Services;
+using Microsoft.VisualBasic;
+using System.Data;
+
 
 namespace FinnHubProxy.Services;
 
@@ -12,8 +19,10 @@ public class WatchListStore
         public string PortfolioId { get; set; } = string.Empty;   
     }
     // Changed to PascalCase per C# standards
-    private ConcurrentDictionary<string, List<string>> WatchlistSecuritiesStore { get; } = new();
-    private ConcurrentDictionary<string, string> Watchlists { get; } = new();
+    private ConcurrentDictionary<string, List<string>> WatchlistSecuritiesStore { get; }
+    = new(StringComparer.OrdinalIgnoreCase);
+    // WatchlistSecuritiesStore
+    private ConcurrentDictionary<string, string> Watchlists { get; } = new();   
 
     public void AddToWatchlist(string watchlistId, string symbol)
     {
@@ -29,7 +38,7 @@ public class WatchListStore
             }
         }
     }
-    public void AddToWatchlist(string watchlistId, string[] symbols)
+    public void AddToWatchlistInBulk(string watchlistId, string[] symbols)
     {
         // Get existing list or create a new one atomicaly
         var list = WatchlistSecuritiesStore.GetOrAdd(watchlistId, _ => new List<string>());
@@ -40,8 +49,11 @@ public class WatchListStore
             list.AddRange(symbols.Except(list, StringComparer.OrdinalIgnoreCase));
         }
     }
-    public string CreateWatchlist(string watchListName)
+    public string CreateWatchlist(string watchListName, string username ="", bool isManulCreation = false)
     {
+        // var username = httpContextAccessor.HttpContext?.Items["username"]?.ToString();
+        // var token = httpContextAccessor.HttpContext?.Items["token"]?.ToString();
+
         // TryAdd returns true if the key was added, 
         // or false if the userId already exists.
         string watchlistId = Guid.NewGuid().ToString();
@@ -56,6 +68,28 @@ public class WatchListStore
 
         return "";
 
+    }
+
+    public bool WatchlistExists(string watchlistid)
+    {
+        foreach (var wl in Watchlists)
+        {
+            if (wl.Key == watchlistid)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public bool DeleteWatchlist(string watchlistid)
+    {
+        if(Watchlists.TryRemove(watchlistid, out var list))
+        {
+            WatchlistSecuritiesStore.TryRemove(watchlistid, out var strings);
+            return true;
+        } 
+        return false;
     }
 
     public List<string>? GetWatchlistPortfolio(string watchlistId)
@@ -80,5 +114,19 @@ public class WatchListStore
             name = Watchlists[id]
         })
         .ToList();
+    }
+
+    public dynamic GetWatchlistWithSymbol(List<string> watchlistIds, string symbol)
+    {
+        return watchlistIds
+        .Where(id => WatchlistSecuritiesStore.TryGetValue(id, out var securities) &&
+                     securities.Contains(symbol, StringComparer.OrdinalIgnoreCase))
+        .ToList();
+
+        // bad performance...
+        /* var securities = watchlistIds
+        .Where(id => WatchlistSecuritiesStore.TryGetValue(id, out var securities));
+
+        return securities.Contains(symbol, StringComparer.OrdinalIgnoreCase); */
     }
 }
