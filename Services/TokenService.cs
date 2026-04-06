@@ -15,12 +15,13 @@ namespace FinnHubProxy.Services
             this.configuration = configuration;
         }
        
-        public List<string> CheckToken(string token)
+        public List<string> CheckToken(string token, string type="")
         {
             try
             {
                 var secretKey = configuration["SecretKey"];
                 var handler = new JwtSecurityTokenHandler();
+                handler.InboundClaimTypeMap.Clear(); // 
 
                 var principal = handler.ValidateToken(
                     token,
@@ -37,11 +38,23 @@ namespace FinnHubProxy.Services
                     out SecurityToken validatedToken
                 );
 
+                // 1. Get the 'sub' (Subject)
+                // Note: Use "sub" or ClaimTypes.NameIdentifier depending on your mapping
+                var sub = principal.Claims.FirstOrDefault(c => c.Type == "sub" && type == "sub")?.Value;
+
+                // 2. Get the scopes
                 var userScopes = principal.Claims
                     .Where(c => c.Type == "scope")
-                    .Select(c => c.Value);
+                    .Select(c => c.Value)
+                    .ToList();
 
-                return userScopes.ToList();
+                // 3. Add 'sub' to the list
+                if (sub != null) {
+                    return new List<string> { sub };
+                } else
+                {
+                    return userScopes;
+                }                    
             }
             catch
             {

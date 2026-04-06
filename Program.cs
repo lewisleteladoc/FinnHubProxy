@@ -74,8 +74,8 @@ app.Use(async (context, next) => {
         return;
     }
 
-    string usernameSetting = configuration["XUsername"].ToString();
-    string authSetting = configuration["Authorization"].ToString();
+    string usernameSetting = "X-Username";
+    string authSetting = "Authorization";
     var username = context.Request.Headers[usernameSetting].ToString();
     var token = context.Request.Headers[authSetting].ToString();
 
