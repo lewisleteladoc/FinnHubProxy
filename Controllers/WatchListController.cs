@@ -171,6 +171,77 @@ namespace FinnHubProxy.Controllers
                 UpdatedAt = DateTime.UtcNow
             });
         }
+        
+        [HttpDelete("{watchlistId}/symbols/remove")]
+        public async Task<IActionResult> DeleteFromWatchlist(string watchlistId, [FromBody] string[] symbols)
+        {
+            var username = HttpContext.Items["username"]?.ToString();
+            var token = HttpContext.Items["token"]?.ToString();
+
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            var currentUserClaims = tokenService.CheckToken(token?.Replace("Bearer ", "") ?? "", "scope");
+
+            var sub = tokenService.CheckToken(token?.Replace("Bearer ", "") ?? "", "sub");
+            var nameFromToken = sub != null && sub.Count > 0 ? sub[0] : null;
+
+            if (currentUserClaims.Contains("Invalid Token"))
+                return Unauthorized(new { Message = "Invalid or expired token." });
+
+            bool couldWrite = HasWriteUser(currentUserClaims);
+            bool isAdmin = IsAdmin(currentUserClaims);
+
+            bool watchlistExists = watchlistStore.WatchlistExists(watchlistId);
+            // This is checking if there is a user-watchlist "relationship"
+            bool userHasWatchlist = userWatchlistStore.UserHasWatchlistId(nameFromToken != null ? nameFromToken : username, watchlistId);
+            
+            // Check if the resource exists
+            if (!watchlistExists || (!isAdmin && !userHasWatchlist))
+            {
+                return NotFound(new { Message = $"Watchlist with ID '{watchlistId}' not found." });
+            }
+
+            if (!couldWrite)
+            {
+                return Unauthorized(new { Message = "Not authorized." });
+            }
+
+            bool successfullyRemoved = watchlistStore.RemoveFromWatchlist(watchlistId, symbols);
+
+            if (successfullyRemoved)
+            {
+                return Ok(new
+                {
+                    Message = $"Symbol(s) removed from Watchlist {watchlistId}.",
+                    WatchlistId = watchlistId,                    
+                    removed = true
+                });
+            } else
+            {
+                return NotFound(new
+                {
+                    Message = $"Symbol(s) did not removed from Watchlist {watchlistId}.",
+                    WatchlistId = watchlistId,
+                    removed = false
+                });
+            }
+
+            /*
+            // Logic to update the watchlist with the new symbol goes here
+            // Example: await _context.WatchLists.UpdateSymbolAsync(watchlistId, request.Symbol);
+            watchlistStore.AddToWatchlist(watchlistId, request.Symbol);
+            logger.LogInformation($"AddToWatchlist {watchlistId} - {request.Symbol}.");
+
+            return Ok(new
+            {
+                Message = $"Symbol '{request.Symbol}' added to Watchlist {watchlistId}.",
+                WatchlistId = watchlistId,
+                UpdatedAt = DateTime.UtcNow
+            });
+            */
+        }
+
+        //
 
         [HttpPut("{watchlistId}/bulk")]
         public async Task<IActionResult> BulkAddToWatchlist(string watchlistId, [FromBody] string[] symbols)

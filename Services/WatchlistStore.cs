@@ -49,6 +49,30 @@ public class WatchListStore
             list.AddRange(symbols.Except(list, StringComparer.OrdinalIgnoreCase));
         }
     }
+
+    public bool RemoveFromWatchlist(string watchlistId, string[] symbols)
+    {
+        // Get existing list or create a new one atomicaly
+        var list = WatchlistSecuritiesStore.GetOrAdd(watchlistId, _ => new List<string>());
+
+        // Lock to ensure thread-safety for the List<T> itself
+        if (list.Count == 0)
+            return false;
+
+        int removedCount = 0;
+        lock (list)
+        {
+            foreach (var symbol in symbols)
+            {
+                if (list.Remove(symbol))
+                {
+                    removedCount++;
+                }
+            }            
+        }
+        return removedCount > 0;
+    }
+
     public string CreateWatchlist(string watchListName, string username ="", bool isManulCreation = false)
     {
         // var username = httpContextAccessor.HttpContext?.Items["username"]?.ToString();
